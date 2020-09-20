@@ -1,0 +1,311 @@
+#!/bin/bash
+set -e
+source ./doc.conf
+source doc.banners
+
+configImage=$IMAGE
+configRepo=$REPO
+configPod=$POD
+configTag=$TAG
+
+podImage=""
+version="0.2.2"
+pushOnly="no"
+skipBuild="no"
+imageURI="$REPO/$IMAGE:$TAG"
+deploy="no"
+yes="yes"
+no="no"
+config="no"
+
+# Aruments
+argTag=""
+argImage=""
+argRepo=""
+argPod=""
+
+tag=""
+image=""
+repo=""
+pod=$POD
+
+# Usage prints the help for this command.
+usage() {
+  >&2 echo "Usage:"
+  >&2 echo "    sudo doc build -i <image> -t <tag> -r <repo> -p <pod>"
+  >&2 echo "    sudo doc build --deploy (with doc.conf file at this directory)"
+  >&2 echo "    sudo doc build -i example -t aTag --deploy"
+  >&2 echo ""
+  >&2 echo "Commands:"
+  >&2 echo "    build  Build a docker image from this folder and tag cmd line args or populate the values in"
+  >&2 echo "           in the local doc.conf file."
+  >&2 echo ""    
+  >&2 echo "       --tag    -t: sets the build tag"
+  >&2 echo "       --repo   -r: sets the repo"
+  >&2 echo "       --image  -i: sets the image name"
+  >&2 echo "     "  
+  >&2 echo ""  
+  >&2 echo "       --deploy: Will cause the image to be pushed to the repo and kubectl will use the pod specifed definition to update it's current context"
+  >&2 echo "" 
+  >&2 echo "" 
+  >&2 echo "    config shows current confiruation for this docker context" 
+  >&2 echo ""
+  >&2 echo "     ****************************************************************************"
+  >&2 echo "     *   NOTE: You have to set the image name in the pod's yaml file manually!  *"
+  >&2 echo "     ****************************************************************************"
+  >&2 echo ""
+  >&2 echo ""  
+  exit 1
+}
+
+proceedPrompt(){
+  echo
+  echo -n -e "\e[93m\e[1mProceed? \e[0m[y/n]: "
+  read ans
+  if [[ $ans != y ]]; then
+    exit 0
+  fi
+}
+
+showConfig()
+{
+  echo -e "\e[1m   Configuration:\e[0m"
+  echo
+  echo -e "\e[0m\e[93m   Image: \e[0m\e[1m    $image"
+  echo -e "\e[0m\e[93m   Repo: \e[0m\e[1m     $repo"
+  echo -e "\e[0m\e[93m   Tag: \e[0m\e[1m      $tag"
+  echo -e "\e[0m\e[93m   Deploy: \e[0m\e[1m   $deploy"
+  echo -e "\e[0m\e[93m   Pod: \e[0m\e[1m      $pod"
+  echo -e "\e[0m\e[93m   ImageURI:\e[0m\e[1m  $imageURI"
+  echo -e "\e[0m\e[93m   PodImage: \e[0m\e[1m ${podImage}"
+  #echo -e "\e[0m\e[93m   SkipBuild: \e[0m\e[1m$skipBuild"
+  echo -e "\e[0m\e[93m   PushOnly: \e[0m\e[1m $pushOnly"
+}
+
+podImageSub()
+{
+  sed s!$podName!$buildName! $podFile > COMPILED.yaml
+  cat COMPILED.yaml
+  proceedPrompt
+}
+
+handleConfig()
+{
+  showConfig
+  podImageSub
+}
+
+configSubArgs(){
+  ehco
+}
+
+failOnNonZeroCode()
+{
+  if [[ $? -ne 0 ]]; then
+    echo -e "\e[90m"
+    skull
+    echo
+    echo -e "\e[91m$repo/$image:$tag"
+    echo -e "\e[5m\e[91mFailed\e[0m"
+    echo
+    exit 1
+  fi
+}
+
+mismatchMsg()
+{
+  echo
+  echo "IMAGE NAME MISMATCH:"
+  echo -e "  Pod   Image: \e[92m$podImage\e[0m"
+  echo -e "  Repo  Image: \e[96m$imageURI\e[0m"
+  echo 
+}
+
+imageURICheck()
+{
+  if [[ "$podImage" != "$imageURI" ]]; then
+    if [[ "$SUPRESS_WARNINGS" -eq 1 ]]; then
+      mismatchMsg
+    else
+      podMismatchWarming
+    fi 
+  else
+    echo "Image names match. Proceeding (/¯◡ ‿ ◡)/¯"
+  fi
+}
+
+podMismatchWarming()
+{
+  #echo -e "$(cat ./wojak.banner)"
+  echo
+  echo -e "\e[5m\e[93m\e[1mWARNING!\e[0m"
+  mismatchMsg
+  echo "This pod will not be deployed with an image from the current build configuration. Are your sure wish to proceed?"
+  echo -n -e "\e[93m\e[1mProceed with this pod configuration? \e[0m[y/n]: "
+  read ans
+  if [[ $ans != y ]]; then
+    echo -e "\033[s\033[8A\e[93m\e[1mWARNED ( ͡° ͜ʖ ͡°)\e[0m \033[u\r"
+    exit 1
+  fi
+  echo -e "\033[s\033[8A\e[93m\e[1mWARNING IGNORED ¯\_(⊙_ʖ⊙)_/¯\e[0m \033[u\r"
+  echo -e "\033[u"
+  wojak_warning
+}
+
+build()
+{
+  echo -e "\e[34m"
+  build_banner
+  echo -e "\e[0m"
+  echo Building...
+  docker build -t $image:$tag . || failOnNonZeroCode
+  docker tag $image:$tag $imageURI || failOnNonZeroCode
+  echo -e "\e[92mSuccesfully tagged build $repo/$image:$tag\e[0m"
+}
+
+deploy()
+{
+  echo -e "\e[92m"
+  push_banner
+  echo -e "\e[0m"
+  echo
+  echo Pushing $repo/$image:$tag to repo...
+  docker push $repo/$image:$tag || failOnNonZeroCode;
+  echo
+  if [[ "$pushOnly" == yes ]]; then
+      echo -e "\e[92mdone\e[0m"
+      exit 0
+  fi
+  echo
+  echo -e "\e[92m"
+  pod_banner
+  echo -e "\e[0m\e[1m"
+  echo
+  echo -e "$(cat $pod)"
+  echo -n -e "\e[0m\e[93m\e[1mProceed with this pod config? \e[0m[y/n]: "
+  read ans
+  if [[ $ans != y ]]; then
+    exit 1
+  fi
+  echo
+  echo -e "\e[92m"
+  k8_banner
+  echo -e "\e[0m"
+  echo
+  echo Destroying old pod...
+  kubectl delete pods $image
+  failOnNonZeroCode
+  echo -e "\e[92mDeploying pod with configuration from $pods to k8...\e[0m"
+  kubectl apply -f $pod
+  failOnNonZeroCode
+  echo
+  echo -e "\e[92mPod successfully reconfigured!"
+  echo
+  echo -e "\e[92m"
+  logs_banner
+  echo -e "\e[0m"
+  sleep 15
+  for i in {1..5}; do kubectl logs $image && break || sleep 1 * i; done
+  failOnNonZeroCode
+  echo -e "\e[92m$imageURI"
+  echo -e "\e[5m\e[92mPod running!\e[0m"
+  echo
+  echo
+}
+
+
+
+while [[ ! -z "$1" ]]; do
+  #echo "loop 1 $1"
+	case "$1" in
+		  -h | --help)
+  			usage
+        exit 0
+  			;;     
+      -v | --version)
+        echo $version
+        exit 0
+        ;;
+      build) 
+        break
+        ;;
+      deploy)
+        skipBuild=$yes
+        deploy=$yes
+        break
+        ;;
+      config)
+        config=$yes;
+        break
+	esac
+	shift
+done
+#if [[ "$1" == '--' ]]; then shift; fi
+
+while [[ ! -z "$1" ]]; do
+  #echo "loop 2 $1"
+  case "$1" in
+      -t | --tag) 
+        shift; 
+        argTag=$1
+        ;;     
+      -i | --image)
+        shift; 
+        argImage=$1
+        ;;
+      -r | --repo)
+        shift; 
+        argRepo=$1
+        ;;
+      -p | --pod)
+        shift; 
+        argPod=$1
+        ;;
+      --deploy)
+        deploy=$yes
+        ;;
+      --pushOnly)
+        pushOnly=$yes
+        ;;
+  esac
+  shift
+done
+
+#echo "$argTag"
+#configImageFull="$configRepo/$configImage:$configTag"
+#argImageFull="$argRepo/$argImage:$argTag"
+podImage="$(grep 'image:' $configPod | sed 's/image://g' | sed 's/'\''//g' | sed 's/'\"'//g' | tr -d '[:space:]')"
+
+#echo "arg: $argImageFull"
+#echo "pod: $podImageFull"
+#echo "config: $configImageFull"
+if [[ -n "$argTag" ]]; then tag=$argTag; else tag=$configTag; fi
+if [[ -n "$argImage" ]]; then image=$argImage; else image=$configImage; fi
+if [[ -n "$argRepo" ]]; then repo=$argRepo; else repo=$configRepo; fi
+if [[ -n "$argPod" ]]; then pod=$argPod; else pod=$configPod; fi
+
+imageURI=${repo}/${image}:${tag}
+imageURI=$(echo $imageURI | tr -d " ")
+
+if [[ "$config" == "$yes" ]]; then handleConfig; exit 0; fi
+
+if [[ "$deploy" == "$yes" && "$pushOnly" == "$no" ]]; then
+  imageURICheck
+fi
+
+showConfig
+proceedPrompt
+
+if [[ "$pushOnly" == "$yes" ]]; then
+  deploy
+fi
+
+eval $PREBUILD
+
+if [[ "$deploy" == "$yes" ]]; then
+  echo Build and deploy... && build && deploy
+fi
+
+if [[ "$deploy" == "$no" ]]; then
+  build
+fi
