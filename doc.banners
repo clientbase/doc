@@ -1,0 +1,70 @@
+# echo "$(cat ../apps/resource-server/some.banner)" | gzip -cf | base64 > some.banner.gzip
+
+wojak="H4sIADEED10AA52VsQqDMBCG9zxFtq6F9gUEaRsKFlTooKuj75AhQ4YOCiUP6JPYaklj7i5R4XDQ
+3Jf//rvEuqlO55YNb4mEUYORwfgsUIzI6deFdBC/5JWZIZDeS4E40w3mRa9TWKArvxy2Wh3Eed7P
+LzULCoQJ6CcJZEY0Kmw4KLqySne0xZOGehpp0bxu1qKnQFvk2r2tV5TF/XJX2zF8qqi5gYHWqu3w
+u2hoWbgOKEI7B3zhRsDxDrihsCH7c13JqApvHuxTentQ0C7GpUJTROsA5MKLMu4mPD9RsW698SMQ
+gFqQ36bwfewWqCfEhmRYtf9jsVE31bFlgqciPZQ8Ke788sh5eRMFfyZ5JrIrGwFW8bMvyAYAAA=="
+
+skull="H4sIACIGD10AA32SMW/cMAyFd/0KPlkBChdWV4MIICOTFy0HG9SopcMNTaYDPPG3l5JzRZILSsAG
+LX0WH59I9F0wMxQtOLrH7Xjsq6wAASnPs6zlGyyWcchLMIpQkEMPkeMR5V4JaYWlAeFfzIW/sIAS
+KZs2slfA8B/YWrA2VjxbrnEPBelyh3PGZ1jPflUpchEjdhN0spcH2HSwdhTZb12DlJSGfDH2EdYk
+t+MqY7W8+o7PveFkry+ay0Tdqvfv2o7fFHOQvez6CeYnO1DbcX/4Qxv0LvsDy6hxartbr30csd2h
+yETq/TCM3sUWRkyq/FwJp+zW2rLIMqa7oF/ViS1lE06xuQWcl81llyBWvXrtatgNXrVGPp5qn4G1
+LUN6d9s1sv0v++tPVGfTpjYDlUuzlNIacSNv2Is9EN5hurO6aPWaRQvi1LK0yCZvP/zY/A/bGkAm
+7xoVJSR0hLjb8RLkZtxodwkXLsu1HXUqb6q0G2bVfr9yrS7lsi1yRL3vG9Fs6oOj7i8pqEvUMwMA
+AA=="
+
+build="H4sIAOsID10AA+PiUlZQeDStAx1Nna6AYCkg2JgMBQUFXCYgmT11yqOpE0AIXf9EJNMnYjKQTccw
+A5fbgermkmP+RCQmtd2Ow2xMd0+dRdBLWBQguwtDI9g+oLkQXyDQXFzCMNG52KRxic8Fx3diXopC
+SWK6AhGACwB8BZlxfQIAAA=="
+
+pod="H4sIAGUKD10AA5VPQQ6AIAy784rd1MTED5HgQ/p42w6QeJPFhrV0ndF0Yh5fP5yZGESB2zoksOKy
+B4uDzN6OaUFjA0/Vu6yepVSiHinFWZnSOIVJxPu1mENsxtCw1It1hGKFPcV7JbeW9QLvXJ1EPNVW
+/745yfwSpdMSf47m/rPAu5QHqqLAIpgBAAA="
+
+k8="H4sIALAKD10AA3WP0Q2EMAxD/5nCf3DSiS6AmKSSF8nw2AlU15PIR2XHr0kLAnQBP2LU7JZANDR1
+OxDmLUaFexO9Ct74ySQK8Ab65mNyB03jwCl1YNC1atXxmJoUonclYzYZ9aAmXb07Y9KMzk7HZlPY
+aopkpnfrKxov9fe/2vZOM2ZrfLkAKoUpwnABAAA="
+
+logs="H4sIANUKD10AA32OwQnAUAhD706RYwsFFxLSQRy+JuUfPpR6COYZVBBfFY3+5SStoNvFc3xJbwlb
+fOaNgyekjZp4hejUGKbQ5VzGfk5D7925o+8/DzzkPMLAAAAA"
+
+push="H4sIAD4LD10AA5VQQQ7DMAi75xXc1krT+BCSP8LjF5ukTVtp0uAQMBhMDDQ7DbeX4a1lWEuWLA4g
+u6+vwmvLwk1gVyO4QHlxlY+QLcyIlZK5F649buS+tCON6Ah5gFemaoWttHF0WkhaTk/bpIgeHKId
+glRo5HTrtDeoylFziIQUzTR00YdQFdrz+37Z8oP2Nxcr9wuLd1i24AEAAA=="
+
+wojak_warning()
+{
+	echo -e "$(base64 -d <<<${wojak} | gunzip)"
+}
+
+skull()
+{
+	echo -e "$(base64 -d <<<${skull} | gunzip)"
+}
+
+build_banner()
+{
+	echo -e "$(base64 -d <<<${build} | gunzip)"
+}
+
+pod_banner()
+{
+	echo -e "$(base64 -d <<<${pod} | gunzip)"
+}
+
+logs_banner()
+{
+	echo -e "$(base64 -d <<<${logs} | gunzip)"
+}
+
+push_banner()
+{
+	echo -e "$(base64 -d <<<${push} | gunzip)"
+}
+
+k8_banner()
+{
+	echo -e "$(base64 -d <<<${k8} | gunzip)"
+}
