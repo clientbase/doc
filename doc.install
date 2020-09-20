@@ -1,0 +1,4 @@
+sudo chmod 755 ./doc
+sudo chmod 755 ./doc.banners
+sudo cp doc /usr/bin/doc
+sudo cp doc.banners /usr/bin/doc.banners
